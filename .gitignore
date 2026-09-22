@@ -2,5 +2,6 @@
 .venv*/
 __pycache__/
 data/raw/
-data/processed/
+data/processed/*.jsonl
+!data/processed/*.jsonl.gz
 *.pyc

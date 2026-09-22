@@ -1,0 +1,62 @@
+# laya-issue-triage
+
+> A fine-tune of [Laya](https://github.com/NandhaKishorM/laya) that triages
+> GitHub issues, plus the dataset pipeline that built it and a GitHub Action
+> that runs it. Laya is a non-autoregressive typed-decision engine: it answers
+> typed questions about a state in a single forward pass, with no text
+> generation and nothing to parse.
+
+## What this project is
+
+The model answers two typed questions about a newly opened GitHub issue:
+
+- `issue_type` (Laya `choice`): one of `bug`, `feature`, `question`, `docs`
+- `needs_more_info` (Laya `noul`): whether a maintainer must ask the author for
+  reproduction steps, a version number, logs, or a code sample before the issue
+  is actionable
+
+Training labels come from maintainers who triaged the issues by hand, not from
+a teacher model.
+
+## Scope of the benchmark numbers
+
+Numbers in this repository are measured on GitHub issue triage only, against
+three repositories held out of training entirely: `huggingface/transformers`,
+`facebook/react`, `microsoft/TypeScript`.
+
+They are **not** comparable to scores on the `LocalLLaMA/typed-decisions`
+benchmark reported for base Laya checkpoints, for TypeSafe Jev, or for any other
+system. That is a different task with a different label space and different
+data. Any comparison across the two is invalid, including comparisons drawn by
+summarizing both in one table.
+
+## Key facts
+
+- Base model: `convaiinnovations/laya` (ModernBERT-large, 421M params, 512-token context)
+- Training data: ~7.7k maintainer-labeled issues from 14 public repositories, balanced across the four types
+- Held-out test set: ~3.9k issues from 3 repositories absent from training
+- Fine-tuning: Kaggle 2xT4 with DDP, adapted from the upstream Laya notebook
+- Inference cost: none; the model runs on CPU inside a GitHub Action
+- Measured latency: ~460 ms per issue on an M4 laptop CPU, ~317 ms on Apple MPS.
+  Upstream's 33 ms figure is a batched T4 measurement and does not describe
+  single-issue CPU inference.
+
+## Files
+
+- `scripts/fetch_issues.py`: harvests maintainer-labeled issues via the GitHub API
+- `scripts/build_dataset.py`: emits train/val/test in Laya's typed-decisions schema
+- `scripts/eval_laya.py`: scores any checkpoint, with random / majority / zero-shot baselines
+- `scripts/verify_records.py`: dry-runs records through Laya's own preprocessing
+- `config/labels.yaml`: maps each project's label spellings onto the four types
+- `notebooks/laya_triage_finetune_kaggle.ipynb`: the fine-tuning run
+- `data/processed/*.jsonl.gz`: the dataset, committed so results are reproducible
+
+## Reproducing the numbers
+
+```bash
+python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+cp .env.example .env            # a GitHub token, no scopes needed
+.venv/bin/python scripts/fetch_issues.py
+.venv/bin/python scripts/build_dataset.py
+.venv-laya/bin/python scripts/eval_laya.py --model convaiinnovations/laya
+```

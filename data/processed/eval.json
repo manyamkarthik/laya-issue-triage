@@ -1,0 +1,77 @@
+{
+  "base_zeroshot": {
+    "tag": "base_zeroshot",
+    "model": "convaiinnovations/laya",
+    "device": "mps",
+    "n_cases": 300,
+    "issue_type": {
+      "n": 219,
+      "accuracy": 0.6256,
+      "macro_f1": 0.5235,
+      "per_class_f1": {
+        "bug": 0.6632,
+        "feature": 0.7975,
+        "question": 0.1,
+        "docs": 0.5333
+      },
+      "majority_baseline": 0.3699,
+      "random_baseline": 0.25,
+      "ece": 0.1161
+    },
+    "needs_more_info": {
+      "n": 300,
+      "accuracy": 0.5633,
+      "macro_f1": 0.5566,
+      "positive_rate": 0.27,
+      "ece": 0.1018
+    },
+    "latency_ms": {
+      "p50": 316.7,
+      "p95": 427.9,
+      "mean": 311.6
+    },
+    "per_repo_issue_type_accuracy": {
+      "facebook/react": 0.7222,
+      "huggingface/transformers": 0.8913,
+      "microsoft/TypeScript": 0.4356
+    }
+  },
+  "base_cpu_latency": {
+    "tag": "base_cpu_latency",
+    "model": "convaiinnovations/laya",
+    "device": "cpu",
+    "n_cases": 40,
+    "issue_type": {
+      "n": 34,
+      "accuracy": 0.5294,
+      "macro_f1": 0.3457,
+      "per_class_f1": {
+        "bug": 0.6,
+        "feature": 0.7826,
+        "question": 0.0,
+        "docs": 0.0
+      },
+      "majority_baseline": 0.3529,
+      "random_baseline": 0.25,
+      "ece": 0.2177
+    },
+    "needs_more_info": {
+      "n": 40,
+      "accuracy": 0.6,
+      "macro_f1": 0.5604,
+      "positive_rate": 0.175,
+      "majority_baseline": 0.825,
+      "ece": 0.1183
+    },
+    "latency_ms": {
+      "p50": 461.7,
+      "p95": 617.2,
+      "mean": 429.2
+    },
+    "per_repo_issue_type_accuracy": {
+      "facebook/react": 0.75,
+      "huggingface/transformers": 0.7143,
+      "microsoft/TypeScript": 0.2667
+    }
+  }
+}

@@ -1,105 +1,186 @@
-# laya-triage
+# laya-issue-triage
 
-A GitHub issue triage dataset for fine-tuning
-[Laya](https://github.com/NandhaKishorM/laya) — the non-autoregressive typed
-decision engine. The fine-tuned model answers two typed questions about a newly
-opened issue in a single forward pass:
+**GitHub issue triage with [Laya](https://github.com/NandhaKishorM/laya), a
+non-autoregressive typed-decision model.** One forward pass per issue, no text
+generation, no API bill, runs on the CPU inside a GitHub Action.
 
-| question | Laya type | answers |
+The model answers two typed questions about a newly opened issue:
+
+| question | Laya primitive | answers |
 | --- | --- | --- |
 | `issue_type` | `choice` | `bug`, `feature`, `question`, `docs` |
 | `needs_more_info` | `noul` | `true` / `false` |
 
-Labels come from maintainers: every issue in the set already carries a
-hand-applied label, mapped onto the four canonical types. That makes the
-training signal free and the benchmark honest.
+Training labels come from the maintainers who triaged each issue by hand — not
+from a teacher model, and not from heuristics.
 
-Laya's own README is blunt that the base checkpoints score near chance on typed
-decisions zero-shot and that "all of the capability on this benchmark comes from
-fine-tuning" — which is exactly why a well-built domain dataset is the whole
-game here.
+---
+
+## Results
+
+Measured on **3,868 issues from three repositories held out of training
+entirely** (`huggingface/transformers`, `facebook/react`, `microsoft/TypeScript`),
+so these are generalization numbers rather than memorization.
+
+| model | `issue_type` accuracy | macro-F1 | `needs_more_info` accuracy |
+| --- | --- | --- | --- |
+| random | 0.250 | — | 0.500 |
+| majority class | 0.370 | — | 0.730 |
+| base `laya`, zero-shot | 0.626 | 0.524 | 0.563 |
+| **fine-tuned (this repo)** | _pending_ | _pending_ | _pending_ |
+
+Zero-shot per-class F1 shows where the work is: `feature` 0.80, `bug` 0.66,
+`docs` 0.53, **`question` 0.10**. The base model calls 38 of every 53 real
+questions a bug, because "how do I do X?" and "X doesn't work" look alike
+until you attend to intent. Fine-tuning targets exactly that.
+
+Note that on `needs_more_info` the base model **loses to a constant baseline**
+(0.563 against 0.730 for always answering `false`). Reported without that
+column, 0.563 would look like a result instead of a deficit.
+
+### What these numbers do and do not compare to
+
+These are GitHub issue triage numbers. They are **not comparable** to scores on
+the `LocalLLaMA/typed-decisions` benchmark — the one where base Laya scores
+0.362 and TypeSafe Jev scores 0.727 — because that is a different task with a
+different label space and different data. This model has never been run on it.
+Putting the two in one table would be meaningless, however favourable it looked.
+
+---
 
 ## Quick start
 
 ```bash
 python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
-cp .env.example .env   # paste a GitHub token, no scopes needed
+cp .env.example .env   # a GitHub personal access token, no scopes required
 .venv/bin/python scripts/fetch_issues.py
 .venv/bin/python scripts/build_dataset.py
 ```
 
-Output lands in `data/processed/{train,val,test}.jsonl`.
+The built splits are committed at `data/processed/*.jsonl.gz`, so you can skip
+straight to training or evaluation.
 
-Data collection needs nothing but `requests` and `PyYAML`, so the stock macOS
-Python is fine. Running Laya itself needs **Python 3.10+** (`torch` 2.14,
-`transformers` 5.x), so use a separate 3.12 venv for local evaluation.
+Harvesting needs only `requests` and `PyYAML`, so stock macOS Python works.
+Running Laya itself needs **Python 3.10+** (`torch` 2.14, `transformers` 5.x):
 
-## Record format
+```bash
+python3.12 -m venv .venv-laya && .venv-laya/bin/pip install laya
+.venv-laya/bin/python scripts/eval_laya.py --model convaiinnovations/laya
+```
+
+---
+
+## The dataset
+
+| split | issues | bug | feature | question | docs | `needs_more_info` labeled |
+| --- | --- | --- | --- | --- | --- | --- |
+| train | 7,749 | 1,359 | 1,360 | 1,368 | 1,332 | 6,384 (36% positive) |
+| val | 861 | 141 | 140 | 132 | 168 | 710 |
+| test | 3,868 | 990 | 882 | 743 | 254 | 3,868 (26% positive) |
+
+Roughly 14,000 typed decisions, harvested from 14 public repositories spanning
+editors, languages, ML frameworks and infrastructure.
 
 Rows mirror
 [`LocalLLaMA/typed-decisions`](https://huggingface.co/datasets/LocalLLaMA/typed-decisions),
-the dataset Laya's fine-tuning notebook consumes, so the splits are a drop-in
-swap: `state`, `questions` and `gold` are each JSON-encoded strings.
+the schema Laya's fine-tuning notebook consumes, so they are a drop-in swap:
+`state`, `questions` and `gold` are each JSON-encoded strings, alongside `id`
+and `workflow` (the repo, which doubles as a per-repo breakdown key).
 
 ```json
 {
+  "id": "pandas-dev/pandas#12345",
+  "workflow": "pandas-dev/pandas",
   "state": "{\"title\": \"...\", \"body\": \"...\"}",
   "questions": "{\"issue_type\": {\"type\": \"choice\", \"instructions\": \"...\", \"criteria\": {...}}, ...}",
-  "gold": "{\"issue_type\": {\"probabilities\": {\"bug\": 1.0, \"feature\": 0.0, ...}}, ...}"
+  "gold": "{\"issue_type\": {\"probabilities\": {\"bug\": 1.0, ...}, \"label\": \"bug\"}}"
 }
 ```
 
-Gold probabilities are one-hot because maintainer labels are hard labels. In the
-notebook, swap the `load_dataset("LocalLLaMA/typed-decisions", ...)` call for:
+### Decisions worth knowing about
 
-```python
-ds_train = load_dataset("json", data_files="train.jsonl", split="train")
-```
+**Gold is per-question.** An issue carries gold only for the questions its
+labels actually answer. Absence of a `needs-repro` label means `false` only in
+projects that use such labels at all — elsewhere the question is left
+unanswered rather than silently labeled `false`. Laya's preprocessing skips any
+question missing from gold, so partial rows are legal and cost nothing.
 
-`--format raw` emits flat, human-readable records instead, for inspection.
+**`Discussion` labels are excluded from `question`.** In rust, numpy and react
+that label means a design debate, which reads like a feature proposal. Folding
+those in would have inflated the class with mislabeled data.
 
-## How it works
+**Label spellings are normalized, not enumerated.** `Type: Bug`, `kind/bug`,
+`C-bug` and `00 - Bug` all reduce to the same stem before matching
+(`scripts/labelmap.py`), so adding a repo usually needs no config change.
 
-`scripts/fetch_issues.py` reads each repo's real label list, matches those names
-against the regexes in `config/labels.yaml`, then pulls closed issues label by
-label so the four classes come back roughly balanced. Pull requests are skipped;
-rate limits and secondary throttling are handled by backing off.
+**The repo name is not in `state`.** The model decides from issue content
+rather than learning per-project conventions it cannot use on a new project.
 
-`scripts/build_dataset.py` strips issue-template comments, code fences, images
-and URLs, drops issues whose labels are ambiguous or excluded, dedupes by title,
-caps each class, and writes the splits.
-
-State text is capped at ~900 characters by default, which fits the 512-token
-context of the English `laya` checkpoint (roughly 320 tokens remain for state
-after the option prompt). Raise `--max-chars` when targeting the 1024-context
-`laya-typed-decisions` or `laya-multilingual` checkpoints.
-
-The repo name is deliberately left out of `state`, so the model has to decide
-from issue content rather than memorizing per-project conventions.
-
-## Splits
-
-`config/repos.yaml` marks two repos as `split: test`. They are held out
-completely — no issue from them appears in training — so accuracy on
-`test.jsonl` measures generalization to a project the model has never seen.
-That is the number worth putting in a benchmark table.
+---
 
 ## Fine-tuning
 
-Laya's notebook
-(`notebooks/laya_finetune_typed_decisions_2xT4_kaggle.ipynb` in the upstream
-repo) runs on Kaggle's free **2×T4** GPUs with DDP — not a single Colab T4 —
-and does the whole loop: preprocess, train with RLCD, fit calibration
-temperatures, evaluate, push to the Hub. Upstream reports roughly 4–5 hours for
-4 epochs over ~30k questions, so scale expectations to the size of this set.
+`notebooks/laya_triage_finetune_kaggle.ipynb` is upstream's notebook with only
+the data cells swapped — the DDP training script is byte-identical. It runs on
+Kaggle's free **2×T4** (not a single Colab T4) and does the whole loop:
+preprocess, train with RLCD, fit calibration temperatures, evaluate, push.
 
-Fit calibration temperatures before trusting the confidence scores; upstream
-measures mean ECE dropping 0.466 → 0.081 after refitting.
+Set `DATA_BASE` to your fork and `HF_USER` before running. Upstream reports
+4–5 hours for 4 epochs over ~30k questions.
 
-## Tuning the harvest
+Before spending those hours, dry-run the records through Laya's own
+preprocessing — it silently drops any item whose marker count disagrees with
+the option count:
 
-- Add repos or change quotas in `config/repos.yaml`.
-- Add label spellings in `config/labels.yaml` (regex, matched against lowercased
-  label names).
-- `--limit N` on the fetcher for a fast trial run; `--only owner/repo` for one
-  repo.
+```bash
+.venv-laya/bin/python scripts/verify_records.py
+```
+
+---
+
+## Latency, honestly
+
+| device | p50 per issue |
+| --- | --- |
+| T4 (batched, upstream's figure) | 33 ms |
+| Apple M4, MPS | 317 ms |
+| Apple M4, CPU | 462 ms |
+
+A GitHub Actions runner is CPU-only and slower than an M4, so budget on the
+order of a second per issue. That is still free and still far faster than a
+maintainer reading the issue.
+
+---
+
+## Relationship to Laya
+
+This repository is a downstream application, not a fork. It depends on the
+`laya` package and the `convaiinnovations/laya` checkpoint, both Apache-2.0.
+
+Laya's own README states that its base checkpoints sit near chance on typed
+decisions zero-shot and that the capability comes from fine-tuning. That is
+consistent with what we measured here: the base checkpoint is useful on
+`feature` and `bug`, near-blind on `question`, and worse than a constant on
+`needs_more_info`.
+
+---
+
+## Layout
+
+```
+config/labels.yaml    label spellings -> the four canonical types
+config/repos.yaml     which repos, which per-type quotas, which are held out
+scripts/fetch_issues.py    GitHub API harvest, balanced per type
+scripts/build_dataset.py   cleaning, dedupe, splits, Laya schema
+scripts/eval_laya.py       accuracy / macro-F1 / ECE / latency / confusion
+scripts/verify_records.py  preprocessing dry-run
+scripts/labelmap.py        shared label normalization
+notebooks/            the Kaggle fine-tuning run
+data/processed/       committed splits (gzipped)
+```
+
+## License
+
+Apache-2.0, matching Laya. Issue text is quoted from public repositories and
+remains under its original projects' terms; the dataset is a derived work for
+research and tooling.

@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+title: "laya-issue-triage: GitHub issue triage with a fine-tuned Laya decision model"
+message: "If you use this dataset or model, please cite it."
+type: software
+authors:
+  - given-names: Karthik
+    family-names: Manyam
+repository-code: "https://github.com/REPO_SLUG"
+license: Apache-2.0
+keywords:
+  - laya
+  - typed-decisions
+  - github-issue-triage
+  - non-autoregressive
+  - modernbert
+  - issue-classification
+references:
+  - type: software
+    title: "Laya: multilingual non-autoregressive System 1 decision engine"
+    authors:
+      - name: "Convai Innovations"
+    repository-code: "https://github.com/NandhaKishorM/laya"
+    license: Apache-2.0

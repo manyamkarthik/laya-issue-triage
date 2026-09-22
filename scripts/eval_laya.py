@@ -144,6 +144,12 @@ def main():
             "positive_rate": round(
                 sum(1 for g, _ in info_pairs if g == "true") / len(info_pairs), 4
             ) if info_pairs else 0.0,
+            # Always answering "false" is the bar to beat here, and on a skewed
+            # set it is a high one.
+            "majority_baseline": round(
+                max(sum(1 for g, _ in info_pairs if g == lb) / len(info_pairs)
+                    for lb in ("true", "false")), 4
+            ) if info_pairs else 0.0,
             "ece": round(ece(info_confs, info_correct), 4),
         },
         "latency_ms": {
