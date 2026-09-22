@@ -30,6 +30,22 @@ system. That is a different task with a different label space and different
 data. Any comparison across the two is invalid, including comparisons drawn by
 summarizing both in one table.
 
+## Results
+
+Fine-tuned checkpoint: https://huggingface.co/harikarthikmanyam/laya-issue-triage
+
+On 2,869 type-labeled issues from the three held-out repositories:
+
+- `issue_type` accuracy 0.650, macro-F1 0.627 (base checkpoint zero-shot: 0.626 / 0.524; majority class 0.345; random 0.250)
+- Per-class F1: feature 0.796, bug 0.641, docs 0.585, question 0.487 — the `question` class rose from 0.100 zero-shot, which is the substantive gain
+- `needs_more_info` accuracy 0.734, below the 0.738 always-false baseline, so the Action ships with commenting disabled
+- Calibration after temperature fitting: ECE 0.103 and 0.085
+- Per-repo accuracy: transformers 0.753, react 0.724, TypeScript 0.551
+- 78.8 ms median per issue on a T4; trained 2 epochs on Kaggle 2xT4 in 54 minutes
+
+Accuracy is the wrong summary statistic here: it moved 0.024 while macro-F1
+moved 0.103, because the gains land on the smaller classes.
+
 ## Key facts
 
 - Base model: `convaiinnovations/laya` (ModernBERT-large, 421M params, 512-token context)

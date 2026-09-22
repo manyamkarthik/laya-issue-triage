@@ -25,18 +25,52 @@ so these are generalization numbers rather than memorization.
 | model | `issue_type` accuracy | macro-F1 | `needs_more_info` accuracy |
 | --- | --- | --- | --- |
 | random | 0.250 | — | 0.500 |
-| majority class | 0.370 | — | 0.730 |
+| majority class | 0.345 | — | **0.738** |
 | base `laya`, zero-shot | 0.626 | 0.524 | 0.563 |
-| **fine-tuned (this repo)** | _pending_ | _pending_ | _pending_ |
+| **[fine-tuned](https://huggingface.co/harikarthikmanyam/laya-issue-triage)** | **0.650** | **0.627** | 0.734 |
 
-Zero-shot per-class F1 shows where the work is: `feature` 0.80, `bug` 0.66,
-`docs` 0.53, **`question` 0.10**. The base model calls 38 of every 53 real
-questions a bug, because "how do I do X?" and "X doesn't work" look alike
-until you attend to intent. Fine-tuning targets exactly that.
+**Read macro-F1, not accuracy.** Accuracy moved only 0.626 → 0.650, because it
+weights the big classes that already worked. Macro-F1 moved 0.524 → 0.627, and
+the per-class numbers show where:
 
-Note that on `needs_more_info` the base model **loses to a constant baseline**
-(0.563 against 0.730 for always answering `false`). Reported without that
-column, 0.563 would look like a result instead of a deficit.
+| class | base F1 | fine-tuned F1 |
+| --- | --- | --- |
+| `feature` | 0.796 | 0.796 |
+| `bug` | 0.663 | 0.641 |
+| `docs` | 0.533 | 0.585 |
+| **`question`** | **0.100** | **0.487** |
+
+`question` is the whole story. The base model was effectively blind to it,
+calling roughly seven in ten real questions bugs, because "how do I do X?" and
+"X doesn't work" look alike until you attend to intent. That is the class
+maintainers most want separated, and it is the one fine-tuning fixed.
+
+**`needs_more_info` did not clear its bar, and ships disabled.** At 0.734 it
+still sits just under the 0.738 you get by always answering `false` — on the
+exact metric the feature would be judged by. Its macro-F1 of 0.619 against
+0.425 for that constant baseline says the head genuinely discriminates rather
+than guessing, but it buys true positives with false ones. So the Action's
+commenting is off by default, as an empirical result rather than a precaution.
+
+Calibration after temperature fitting: ECE 0.103 on `issue_type`, 0.085 on
+`needs_more_info`.
+
+### Where it is weakest
+
+| held-out repo | `issue_type` accuracy | n |
+| --- | --- | --- |
+| `huggingface/transformers` | 0.753 | 632 |
+| `facebook/react` | 0.724 | 908 |
+| `microsoft/TypeScript` | **0.551** | 1,329 |
+
+TypeScript is 46% of the type-labeled test set, so it pulls the headline number
+down on its own; on the other two the model runs at roughly 0.74. The residual
+error is concentrated in one cell of the confusion matrix — 265 of 743
+questions are still labeled `bug`, which is 36% of all question errors and the
+obvious target for a v2.
+
+Trained for 2 epochs on Kaggle 2×T4 in 54 minutes. Full numbers:
+[`data/processed/benchmark_report.json`](data/processed/benchmark_report.json).
 
 ### What these numbers do and do not compare to
 
@@ -100,20 +134,16 @@ Defaults chosen to be hard to regret:
 - `min-confidence: 0.60` — below that it leaves the issue alone.
 
 **Start in `dry-run` on a real repo and read a week of predictions before letting
-it write.** With the *base* checkpoint the `needs_more_info` answer is currently
-backwards on the obvious cases:
+it write.** Two things that dry-run will show you honestly:
 
-| issue | `needs_more_info` | correct? |
-| --- | --- | --- |
-| "Segfault on BOM file" — version, OS, repro steps, backtrace | 0.713 | no, it has everything |
-| "it does not work. nothing happens when i run it" | 0.177 | no, this is the textbook case |
-
-That is the 0.563-vs-0.730 deficit from the results table, made concrete. It is
-what fine-tuning has to fix, and until it does, that input stays off by default.
-
-Note also that `laya` warns this checkpoint ships temperature values outside the
-sane range, so confidences — and therefore `min-confidence` — are only
-approximate until calibration temperatures are fitted.
+- `issue_type` is right about two times in three, and closer to three in four
+  on projects that label like react or transformers. Good enough to save triage
+  time, not good enough to trust blindly — which is why `skip-if-labeled`
+  defaults to on.
+- `needs_more_info` still does not beat always answering `false` (0.734 vs
+  0.738), so commenting stays off until that changes. The model is not silent on
+  the question — you can read its answer in the Action output and decide for
+  yourself — it just has not earned the right to write to someone's inbox.
 
 ## The dataset
 

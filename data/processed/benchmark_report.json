@@ -1,0 +1,54 @@
+{
+  "task": "github-issue-triage",
+  "model": "harikarthikmanyam/laya-issue-triage",
+  "base_model": "convaiinnovations/laya",
+  "training": {
+    "epochs": 2,
+    "hardware": "Kaggle 2xT4 (DDP)",
+    "wall_clock_seconds": 3242,
+    "train_sequences": 11803,
+    "train_issues": 7749
+  },
+  "n_test_issues": 3868,
+  "held_out_repos": [
+    "facebook/react",
+    "huggingface/transformers",
+    "microsoft/TypeScript"
+  ],
+  "issue_type": {
+    "n": 2869,
+    "accuracy": 0.6501,
+    "macro_f1": 0.6273,
+    "per_class_f1": {
+      "bug": 0.641,
+      "feature": 0.796,
+      "question": 0.487,
+      "docs": 0.585
+    },
+    "majority_baseline": 0.3451,
+    "random_baseline": 0.25,
+    "base_zeroshot": 0.626,
+    "base_zeroshot_macro_f1": 0.524,
+    "ece": 0.103
+  },
+  "needs_more_info": {
+    "n": 3868,
+    "accuracy": 0.7337,
+    "macro_f1": 0.6188,
+    "majority_baseline": 0.7376,
+    "base_zeroshot": 0.563,
+    "ece": 0.085,
+    "note": "Accuracy sits below the always-false baseline, so the Action ships with commenting disabled. Macro-F1 of 0.619 against 0.425 for that constant baseline shows the head does discriminate; it trades false positives for the true positives it catches."
+  },
+  "latency_ms": {
+    "p50": 78.8,
+    "p95": 103.2,
+    "device": "T4"
+  },
+  "per_repo_issue_type_accuracy": {
+    "facebook/react": 0.7236,
+    "huggingface/transformers": 0.7532,
+    "microsoft/TypeScript": 0.5508
+  },
+  "scope_note": "Evaluated only on GitHub issue triage. Not run on LocalLLaMA/typed-decisions; not comparable to numbers reported on that benchmark for base Laya checkpoints, TypeSafe Jev, or any other system."
+}
