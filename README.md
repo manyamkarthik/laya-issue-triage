@@ -16,6 +16,51 @@ from a teacher model, and not from heuristics.
 
 ---
 
+## See it work
+
+```bash
+.venv-laya/bin/python scripts/demo.py
+```
+
+```
+model: harikarthikmanyam/laya-issue-triage   device: cpu
+
+issue title                              type        conf  needs info     ms
+----------------------------------------------------------------------------
+How do I change the output directory?    question   0.774       0.144    215
+Segfault when opening UTF-8 BOM file     bug        0.922       0.850    218
+it does not work                         question   0.514       0.844    181
+Add dark mode support                    feature    0.943       0.094    186
+Typo in the installation guide           docs       0.961       0.153    187
+```
+
+Real output, on a laptop CPU, no GPU and no API key. Both questions come out of
+a single forward pass — the model reads each issue once, not once per question.
+
+`scripts/demo.py --base` runs the same five issues through the un-fine-tuned
+checkpoint, which is where the difference shows:
+
+| issue | base `laya` | fine-tuned |
+| --- | --- | --- |
+| "How do I change the output directory?" | `docs` (0.589) ❌ | **`question` (0.774)** ✅ |
+| "Typo in the installation guide" | `docs` (0.619) | **`docs` (0.961)** — same answer, far more certain |
+| "it does not work" | `bug` (0.934) — confidently | `question` (0.514) — **unsure, so the Action skips it** |
+| "Segfault … BOM file" | `bug` (0.927) | `bug` (0.922) |
+| "Add dark mode support" | `feature` (0.872) | `feature` (0.943) |
+
+Three things worth noticing. The base model mistakes a plain question for a
+docs issue, and the fine-tune fixes it. On the issues both get right, the
+fine-tune is markedly more confident (0.619 → 0.961). And on the junk issue —
+"it does not work", which honestly could be anything — the fine-tune becomes
+*less* confident, dropping under the Action's 0.60 gate so it gets left for a
+human. Calibration means knowing when to abstain, not just being right more often.
+
+The one thing it still gets wrong is visible here too: the fully-detailed bug
+report scores 0.850 on `needs_more_info` when it plainly needs none. See
+[Results](#results).
+
+---
+
 ## Results
 
 Measured on **3,868 issues from three repositories held out of training
