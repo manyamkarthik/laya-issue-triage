@@ -46,7 +46,7 @@ def load_event():
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", required=True)
-    ap.add_argument("--min-confidence", type=float, default=0.5)
+    ap.add_argument("--min-confidence", type=float, default=0.60)  # matches action.yml
     ap.add_argument("--apply-labels", default="true")
     ap.add_argument("--comment-on-needs-info", default="false")
     ap.add_argument("--skip-if-labeled", default="true")
