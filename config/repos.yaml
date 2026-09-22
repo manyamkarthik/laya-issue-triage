@@ -1,0 +1,27 @@
+# Repos to harvest. `split: test` repos are held out entirely so the benchmark
+# measures generalization to projects the model never saw.
+repos:
+  - name: microsoft/vscode
+    split: train
+    target: 1500
+  - name: langchain-ai/langchain
+    split: train
+    target: 1500
+  - name: pytorch/pytorch
+    split: train
+    target: 1500
+  - name: golang/go
+    split: train
+    target: 1500
+  - name: kubernetes/kubernetes
+    split: train
+    target: 1500
+  - name: rust-lang/rust
+    split: train
+    target: 1500
+  - name: huggingface/transformers
+    split: test
+    target: 800
+  - name: facebook/react
+    split: test
+    target: 800

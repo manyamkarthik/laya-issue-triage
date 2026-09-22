@@ -1,0 +1,61 @@
+# Raw maintainer labels -> canonical triage answer.
+# Patterns are regexes matched against the lowercased label name.
+# An issue matching two different types is dropped as ambiguous.
+
+types:
+  bug:
+    - '^bug$'
+    - '^bugs$'
+    - '^type[:/ -]+bug'
+    - '^kind/bug$'
+    - '^c-bug$'
+    - '^a-bug$'
+    - '^bug report$'
+    - '^defect$'
+    - '^regression$'
+    - '^crash$'
+  feature:
+    - '^feature$'
+    - '^feature[- ]request$'
+    - '^enhancement$'
+    - '^type[:/ -]+(feature|enhancement)'
+    - '^kind/(feature|enhancement)$'
+    - '^c-(feature-request|enhancement)$'
+    - '^proposal$'
+    - '^new feature$'
+  question:
+    - '^question$'
+    - '^questions$'
+    - '^type[:/ -]+(question|support)'
+    - '^kind/(question|support)$'
+    - '^support$'
+    - '^help wanted \(question\)$'
+    - '^usage question$'
+  docs:
+    - '^docs?$'
+    - '^documentation$'
+    - '^type[:/ -]+doc'
+    - '^kind/documentation$'
+    - '^area/docs?$'
+    - '^c-docs?$'
+
+# Presence of any of these means the maintainer had to ask for more detail.
+needs_info:
+  - 'needs?[-_ ]?(more[-_ ]?)?info'
+  - 'needs?[-_ ]?repro'
+  - 'more[-_ ]?info(rmation)?[-_ ]?needed'
+  - 'awaiting[-_ ](response|answer|user)'
+  - 'insufficient[-_ ]info'
+  - 'author[-_ ]feedback'
+  - 'info[-_ ]needed'
+  - 'cannot[-_ ]reproduce'
+
+# Issues carrying any of these are skipped entirely (bot noise, meta issues).
+exclude:
+  - '^duplicate$'
+  - '^spam$'
+  - '^invalid$'
+  - '^meta$'
+  - '^tracking$'
+  - '^epic$'
+  - '^good first issue$'
