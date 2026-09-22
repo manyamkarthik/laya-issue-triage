@@ -5,7 +5,7 @@ type: software
 authors:
   - given-names: Karthik
     family-names: Manyam
-repository-code: "https://github.com/REPO_SLUG"
+repository-code: "https://github.com/manyamkarthik/laya-issue-triage"
 license: Apache-2.0
 keywords:
   - laya
