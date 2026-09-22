@@ -1,27 +1,33 @@
-# Repos to harvest. `split: test` repos are held out entirely so the benchmark
-# measures generalization to projects the model never saw.
+# Per-type quotas, so class balance is controlled at harvest time rather than by
+# throwing data away later. `question` and `docs` are scarce across projects, so
+# they get higher quotas; `bug` and `feature` are everywhere.
+defaults:
+  per_type:
+    bug: 300
+    feature: 300
+    question: 500
+    docs: 500
+  # Issues carrying a "needs more info" style label, fetched separately because
+  # those labels are rare and are what makes the second question learnable.
+  needs_info: 400
+
+# `split: test` repos are held out entirely so the benchmark measures
+# generalization to a project the model has never seen.
 repos:
-  - name: microsoft/vscode
-    split: train
-    target: 1500
-  - name: langchain-ai/langchain
-    split: train
-    target: 1500
-  - name: pytorch/pytorch
-    split: train
-    target: 1500
-  - name: golang/go
-    split: train
-    target: 1500
-  - name: kubernetes/kubernetes
-    split: train
-    target: 1500
-  - name: rust-lang/rust
-    split: train
-    target: 1500
-  - name: huggingface/transformers
-    split: test
-    target: 800
-  - name: facebook/react
-    split: test
-    target: 800
+  - {name: microsoft/vscode, split: train}
+  - {name: langchain-ai/langchain, split: train}
+  - {name: pytorch/pytorch, split: train}
+  - {name: golang/go, split: train}
+  - {name: kubernetes/kubernetes, split: train}
+  - {name: rust-lang/rust, split: train}
+  - {name: nodejs/node, split: train}
+  - {name: numpy/numpy, split: train}
+  - {name: pandas-dev/pandas, split: train}
+  - {name: tensorflow/tensorflow, split: train}
+  - {name: scikit-learn/scikit-learn, split: train}
+  - {name: matplotlib/matplotlib, split: train}
+  - {name: denoland/deno, split: train}
+  - {name: ansible/ansible, split: train}
+  - {name: huggingface/transformers, split: test}
+  - {name: facebook/react, split: test}
+  - {name: microsoft/TypeScript, split: test}

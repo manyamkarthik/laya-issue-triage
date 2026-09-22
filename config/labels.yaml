@@ -1,54 +1,56 @@
 # Raw maintainer labels -> canonical triage answer.
-# Patterns are regexes matched against the lowercased label name.
-# An issue matching two different types is dropped as ambiguous.
+# Names are normalized first (see scripts/labelmap.py): lowercased and stripped
+# of prefixes like "Type: ", "kind/", "C-", "33 - ", "area/". Patterns below
+# match the remaining stem, so '^bug$' catches "Type: Bug", "kind/bug" and
+# "C-bug" alike. An issue matching two different types is dropped as ambiguous.
 
 types:
   bug:
-    - '^bug$'
-    - '^bugs$'
-    - '^type[:/ -]+bug'
-    - '^kind/bug$'
-    - '^c-bug$'
-    - '^a-bug$'
+    - '^bugs?$'
     - '^bug report$'
     - '^defect$'
-    - '^regression$'
+    - '^regressions?$'
     - '^crash$'
+    - '^broken$'
+    - '^confirmed[- ]bug$'
   feature:
-    - '^feature$'
-    - '^feature[- ]request$'
-    - '^enhancement$'
-    - '^type[:/ -]+(feature|enhancement)'
-    - '^kind/(feature|enhancement)$'
-    - '^c-(feature-request|enhancement)$'
-    - '^proposal$'
+    - '^features?$'
+    - '^feature[- ]requests?$'
+    - '^enhancements?$'
+    - '^feature[- ]enhancement$'
+    - '^proposals?$'
     - '^new feature$'
+    - '^rfc$'
+    - '^suggestions?$'
   question:
-    - '^question$'
-    - '^questions$'
-    - '^type[:/ -]+(question|support)'
-    - '^kind/(question|support)$'
+    - '^questions?$'
+    - '^usage questions?$'
     - '^support$'
+    - '^support requests?$'
+    - '^help$'
     - '^help wanted \(question\)$'
-    - '^usage question$'
+    # Deliberately NOT '^discussion$': in rust, numpy and react that label means
+    # a design debate, which reads like a feature proposal and poisons the class.
   docs:
     - '^docs?$'
     - '^documentation$'
-    - '^type[:/ -]+doc'
-    - '^kind/documentation$'
-    - '^area/docs?$'
-    - '^c-docs?$'
+    - '^docs?[- ]bug$'
+    - '^documentation[- ](bug|issue|request)$'
+    - '^docs? improvement$'
 
-# Presence of any of these means the maintainer had to ask for more detail.
+# Presence of any of these means a maintainer had to ask for more detail.
 needs_info:
-  - 'needs?[-_ ]?(more[-_ ]?)?info'
-  - 'needs?[-_ ]?repro'
-  - 'more[-_ ]?info(rmation)?[-_ ]?needed'
-  - 'awaiting[-_ ](response|answer|user)'
-  - 'insufficient[-_ ]info'
-  - 'author[-_ ]feedback'
-  - 'info[-_ ]needed'
-  - 'cannot[-_ ]reproduce'
+  - '^info[- ]needed$'
+  - 'needs?[- _]?(more[- _]?)?info(rmation)?'
+  - 'needs?[- _]?repro'
+  - 'reproduction[- ]needed'
+  - 'more[- _]?info(rmation)?[- _]?needed'
+  - 'awaiting[- ](response|answer|user|reply|author)'
+  - 'insufficient[- ]info'
+  - 'author[- ]feedback'
+  - 'cannot[- ]reproduce'
+  - 'unconfirmed'
+  - 'pending[- ]author'
 
 # Issues carrying any of these are skipped entirely (bot noise, meta issues).
 exclude:
