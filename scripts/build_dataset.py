@@ -23,30 +23,9 @@ IMAGE = re.compile(r"!\[[^\]]*\]\([^)]*\)")
 URL = re.compile(r"https?://\S+")
 WS = re.compile(r"\n{3,}")
 
-# Mirrors the schema of LocalLLaMA/typed-decisions, which Laya's fine-tuning
-# notebook consumes: state/questions/gold, each a JSON-encoded string.
-QUESTIONS = {
-    "issue_type": {
-        "type": "choice",
-        "instructions": "What kind of GitHub issue do `title` and `body` describe?",
-        "criteria": {
-            "bug": "something is broken: a crash, an error, wrong output, or a "
-                   "regression from behaviour that used to work",
-            "feature": "a request for new functionality, an enhancement, or a "
-                       "proposal to change how something works",
-            "question": "the author is asking how to use the project or why it "
-                        "behaves a certain way, not reporting a defect",
-            "docs": "the documentation is missing, wrong, unclear, or needs an "
-                    "example",
-        },
-    },
-    "needs_more_info": {
-        "type": "noul",
-        "instructions": "Must a maintainer ask the author of `body` for more "
-                        "information -- reproduction steps, a version number, logs, "
-                        "or a code sample -- before this issue can be worked on?",
-    },
-}
+# The exact strings the model is trained against, shared with the Action at
+# inference time: changing them changes behaviour, so they live in one file.
+QUESTIONS = json.loads((ROOT / "config" / "questions.json").read_text())
 
 
 def clean(text, max_chars):

@@ -1,0 +1,16 @@
+{
+  "issue_type": {
+    "type": "choice",
+    "instructions": "What kind of GitHub issue do `title` and `body` describe?",
+    "criteria": {
+      "bug": "something is broken: a crash, an error, wrong output, or a regression from behaviour that used to work",
+      "feature": "a request for new functionality, an enhancement, or a proposal to change how something works",
+      "question": "the author is asking how to use the project or why it behaves a certain way, not reporting a defect",
+      "docs": "the documentation is missing, wrong, unclear, or needs an example"
+    }
+  },
+  "needs_more_info": {
+    "type": "noul",
+    "instructions": "Must a maintainer ask the author of `body` for more information -- reproduction steps, a version number, logs, or a code sample -- before this issue can be worked on?"
+  }
+}

@@ -70,6 +70,51 @@ python3.12 -m venv .venv-laya && .venv-laya/bin/pip install laya
 
 ---
 
+## The GitHub Action
+
+```yaml
+name: Triage new issues
+on:
+  issues:
+    types: [opened]
+permissions:
+  issues: write
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: manyamkarthik/laya-issue-triage@v1
+        with:
+          dry-run: "true"   # log predictions only, until you trust it
+```
+
+No API key and no per-issue cost — the model runs on the runner's CPU. Torch and
+the checkpoint are cached between runs; a cold run spends a few minutes on that
+download, which dwarfs the inference itself.
+
+Defaults chosen to be hard to regret:
+
+- `skip-if-labeled: true` — the bot never touches an issue a human already triaged.
+- `comment-on-needs-info: false` — a wrong label is easy to fix, a wrong comment
+  is noise in someone's inbox. Turn it on once you trust the numbers.
+- `min-confidence: 0.60` — below that it leaves the issue alone.
+
+**Start in `dry-run` on a real repo and read a week of predictions before letting
+it write.** With the *base* checkpoint the `needs_more_info` answer is currently
+backwards on the obvious cases:
+
+| issue | `needs_more_info` | correct? |
+| --- | --- | --- |
+| "Segfault on BOM file" — version, OS, repro steps, backtrace | 0.713 | no, it has everything |
+| "it does not work. nothing happens when i run it" | 0.177 | no, this is the textbook case |
+
+That is the 0.563-vs-0.730 deficit from the results table, made concrete. It is
+what fine-tuning has to fix, and until it does, that input stays off by default.
+
+Note also that `laya` warns this checkpoint ships temperature values outside the
+sane range, so confidences — and therefore `min-confidence` — are only
+approximate until calibration temperatures are fitted.
+
 ## The dataset
 
 | split | issues | bug | feature | question | docs | `needs_more_info` labeled |

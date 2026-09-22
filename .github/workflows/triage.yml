@@ -1,0 +1,21 @@
+name: Triage new issues
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+        with:
+          # Start in dry-run: the first runs only log what they would do, so you
+          # can read the predictions before the bot touches anyone's issue.
+          dry-run: "true"
+          model: "convaiinnovations/laya"
